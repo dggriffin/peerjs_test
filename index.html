@@ -26,12 +26,49 @@
                 var copy = Array.prototype.slice.call(arguments).join(' ');
                 $('.log').append(copy + '<br>');
             }
+
         });
+
+        peer.handleWinner = function () {
+            var peer = this;
+            var end = "";
+
+            if (peer.sentChoice === 'Rock' && peer.receivedChoice === 'Rock') {
+                end = 'TIE';
+            }
+            if (peer.sentChoice === 'Rock' && peer.receivedChoice === 'Scissors') {
+                end = 'WIN';
+            }
+            if (peer.sentChoice === 'Rock' && peer.receivedChoice === 'Paper') {
+                end = 'LOSS';
+            }
+            if (peer.sentChoice === 'Scissors' && peer.receivedChoice === 'Rock') {
+                end = 'LOSS';
+            }
+            if (peer.sentChoice === 'Scissors' && peer.receivedChoice === 'Scissors') {
+                end = 'TIE';
+            }
+            if (peer.sentChoice === 'Scissors' && peer.receivedChoice === 'Paper') {
+                end = 'WIN';
+            }
+            if (peer.sentChoice === 'Paper' && peer.receivedChoice === 'Rock') {
+                end = 'WIN';
+            }
+            if (peer.sentChoice === 'Paper' && peer.receivedChoice === 'Scissors') {
+                end = 'LOSS';
+            }
+            if (peer.sentChoice === 'Paper' && peer.receivedChoice === 'Paper') {
+                end = 'TIE';
+            }
+            return end;
+        }
+
         var connectedPeers = {};
 
         // Show this peer's ID.
         peer.on('open', function (id) {
             $('#pid').text(id);
+            $('#url').val(window.location.href + '?RefId=' + peer.id);
         });
 
         // Await connections from others
@@ -39,17 +76,32 @@
 
         peer.on('error', function (err) {
             console.log(err);
-        })
+        });
+
+        function getUrlVars() {
+            var vars = [],
+                hash;
+            var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+            for (var i = 0; i < hashes.length; i++) {
+                hash = hashes[i].split('=');
+                vars.push(hash[0]);
+                vars[hash[0]] = hash[1];
+            }
+            return vars;
+        }
+
+
 
         // Handle a connection object.
         function connect(c) {
             // Handle a chat connection.
             if (c.label === 'chat') {
                 var chatbox = $('<div></div>').addClass('connection').addClass('active').attr('id', c.peer);
-                var header = $('<h1></h1>').html('Chat with <strong>' + c.peer + '</strong>');
+                var header = $('<h1></h1>').html('Playing with <strong>' + c.peer + '</strong>');
                 var messages = $('<div><em>Peer connected.</em></div>').addClass('messages');
                 chatbox.append(header);
                 chatbox.append(messages);
+
 
                 // Select connection handler.
                 chatbox.on('click', function () {
@@ -62,41 +114,19 @@
                 $('.filler').hide();
                 $('#connections').append(chatbox);
 
-                c.on('data', function (data) {
 
+
+                c.on('data', function (data) {
                     messages.append('<div><span class="peer">' + c.peer + '</span>: ' + "Answer Submitted" +
                         '</div>');
+
+                    //GET DATA
                     peer.receivedChoice = data;
+
                     var end = "";
                     if (peer.sentChoice && peer.receivedChoice) {
-                        if (peer.sentChoice === 'Rock' && peer.receivedChoice === 'Rock') {
-                            end = 'TIE';
-                        }
-                        if (peer.sentChoice === 'Rock' && peer.receivedChoice === 'Scissors') {
-                            end = 'WIN';
-                        }
-                        if (peer.sentChoice === 'Rock' && peer.receivedChoice === 'Paper') {
-                            end = 'LOSS';
-                        }
-                        if (peer.sentChoice === 'Scissors' && peer.receivedChoice === 'Rock') {
-                            end = 'LOSS';
-                        }
-                        if (peer.sentChoice === 'Scissors' && peer.receivedChoice === 'Scissors') {
-                            end = 'TIE';
-                        }
-                        if (peer.sentChoice === 'Scissors' && peer.receivedChoice === 'Paper') {
-                            end = 'WIN';
-                        }
-                        if (peer.sentChoice === 'Paper' && peer.receivedChoice === 'Rock') {
-                            end = 'WIN';
-                        }
-                        if (peer.sentChoice === 'Paper' && peer.receivedChoice === 'Scissors') {
-                            end = 'LOSS';
-                        }
-                        if (peer.sentChoice === 'Paper' && peer.receivedChoice === 'Paper') {
-                            end = 'TIE';
-                        }
-                        messages.append('<div><span>' + 'You selected ' + peer.sentChoice + ', they selected ' + peer.receivedChoice + ': '  + end + '</div>');
+                        var end = peer.handleWinner(peer.sentChoice, peer.receivedChoice);
+                        messages.append('<div><span>' + 'You selected ' + peer.sentChoice + ', they selected ' + peer.receivedChoice + ': ' + end + '</div>');
                         peer.sentChoice = '';
                         peer.receivedChoice = '';
                         $('.button-active').removeClass('button-active');
@@ -104,6 +134,9 @@
                         $('.button').prop('disabled', false);
                     }
                 });
+
+
+
                 c.on('close', function () {
                     alert(c.peer + ' has left the chat.');
                     chatbox.remove();
@@ -112,20 +145,13 @@
                     }
                     delete connectedPeers[c.peer];
                 });
-            } else if (c.label === 'file') {
-                c.on('data', function (data) {
-                    // If we're getting a file, create a URL for it.
-                    if (data.constructor === ArrayBuffer) {
-                        var dataView = new Uint8Array(data);
-                        var dataBlob = new Blob([dataView]);
-                        var url = window.URL.createObjectURL(dataBlob);
-                        $('#' + c.peer).find('.messages').append('<div><span class="file">' +
-                            c.peer + ' has sent you a <a target="_blank" href="' + url + '">file</a>.</span></div>');
-                    }
-                });
+
+
             }
             connectedPeers[c.peer] = 1;
         }
+
+
 
         $(document).ready(function () {
             // Prepare file drop box.
@@ -135,11 +161,29 @@
                 e.stopPropagation();
             }
 
+            if (getUrlVars()['RefId']) {
+
+                var c = peer.connect(getUrlVars()['RefId'], {
+                    label: 'chat',
+                    serialization: 'none',
+                    metadata: {
+                        message: 'hi i want to chat with you!'
+                    }
+                });
+                c.on('open', function () {
+                    connect(c);
+                });
+                c.on('error', function (err) {
+                    alert(err);
+                });
+            }
+
+
             // Connect to a peer
             $('#connect').click(function () {
                 var requestedPeer = $('#rid').val();
                 if (!connectedPeers[requestedPeer]) {
-                    // Create 2 connections, one labelled chat and another labelled file.
+                    // CREATE A CONNECTION
                     var c = peer.connect(requestedPeer, {
                         label: 'chat',
                         serialization: 'none',
@@ -153,19 +197,11 @@
                     c.on('error', function (err) {
                         alert(err);
                     });
-                    var f = peer.connect(requestedPeer, {
-                        label: 'file',
-                        reliable: true
-                    });
-                    f.on('open', function () {
-                        connect(f);
-                    });
-                    f.on('error', function (err) {
-                        alert(err);
-                    });
                 }
                 connectedPeers[requestedPeer] = 1;
             });
+
+
 
             // Close a connection.
             $('#close').click(function () {
@@ -174,21 +210,26 @@
                 });
             });
 
+
+
             $('.optbutton').click(function () {
                 $('.button-active').removeClass('button-active');
                 $(this).addClass('button-active');
             });
 
+
+
             // Send a chat message to all active connections.
             $('#send').submit(function (e) {
                 e.preventDefault();
                 // For each active connection, send the message.
-                var msg = $('.button-active').val();
+                var msg = $('.button-active').attr('value');
                 eachActiveConnection(function (c, $c) {
                     if (c.label === 'chat') {
+                        //SEND MESSAGE
                         c.send(msg);
-                        $c.find('.messages').append('<div><span class="you">You: </span>' + "Answer Submitted" + '</div>');
 
+                        $c.find('.messages').append('<div><span class="you">You: </span>' + "Answer Submitted" + '</div>');
                         peer.sentChoice = msg;
                         var end = "";
                         $('.optbutton').prop('disabled', true);
@@ -196,35 +237,8 @@
 
                         if (peer.sentChoice && peer.receivedChoice) {
 
-                            if (peer.sentChoice === 'Rock' && peer.receivedChoice === 'Rock') {
-                                end = 'TIE';
-                            }
-                            if (peer.sentChoice === 'Rock' && peer.receivedChoice === 'Scissors') {
-                                end = 'WIN';
-                            }
-                            if (peer.sentChoice === 'Rock' && peer.receivedChoice === 'Paper') {
-                                end = 'LOSS';
-                            }
-                            if (peer.sentChoice === 'Scissors' && peer.receivedChoice === 'Rock') {
-                                end = 'LOSS';
-                            }
-                            if (peer.sentChoice === 'Scissors' && peer.receivedChoice === 'Scissors') {
-                                end = 'TIE';
-                            }
-                            if (peer.sentChoice === 'Scissors' && peer.receivedChoice === 'Paper') {
-                                end = 'WIN';
-                            }
-                            if (peer.sentChoice === 'Paper' && peer.receivedChoice === 'Rock') {
-                                end = 'WIN';
-                            }
-                            if (peer.sentChoice === 'Paper' && peer.receivedChoice === 'Scissors') {
-                                end = 'LOSS';
-                            }
-                            if (peer.sentChoice === 'Paper' && peer.receivedChoice === 'Paper') {
-                                end = 'TIE';
-                            }
-
-                            $c.find('.messages').append('<div><span>' + 'You selected ' + peer.sentChoice + ', they selected ' + peer.receivedChoice + ': '  + end + '</div>');
+                            var end = peer.handleWinner(peer.sentChoice, peer.receivedChoice);
+                            $c.find('.messages').append('<div><span>' + 'You selected ' + peer.sentChoice + ', they selected ' + peer.receivedChoice + ': ' + end + '</div>');
                             peer.sentChoice = '';
                             peer.receivedChoice = '';
                             $('.button-active').removeClass('button-active');
@@ -235,6 +249,7 @@
                 });
 
             });
+
 
             // Goes through each active peer and calls FN on its connections.
             function eachActiveConnection(fn) {
@@ -273,21 +288,33 @@
     <a href="https://github.com/peers/peerjs"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png" alt="Fork me on GitHub">
     </a>
 
+    <div class="header">ROCK PAPER SCISSORS</div>
     <div id="actions">
         Your PeerJS ID is <span id="pid"></span>
         <br> Connect to a peer:
         <input type="text" id="rid" placeholder="Someone else's id">
         <input class="button" type="button" value="Connect" id="connect">
+        <br> Send this link to a friend to play instantly:
+        <input type="text" id="url" value="weee" readonly style="width: 375px;">
+        <br>
+        <br>
         <br>
         <br>
 
-        <form id="send">
-            <input class="optbutton" type="button" value="Rock" id="Rock">
-            <input class="optbutton" type="button" value="Paper" id="Paper">
-            <input class="optbutton" type="button" value="Scissors" id="Scissors">
-            <input class="button" type="submit" value="Send to selected peers">
+
+        <form id="send" style ="width:100%">
+            <div class="button-tray">
+                <img class="optbutton" value="Rock" class="icon" src="rock-paper-scissors-rock-icon.png" />
+                <img class="optbutton" value="Scissors" class="icon" src="rock-paper-scissors-scissors-icon.png" />
+                <img class="optbutton" value="Paper" class="icon" src="Rock%20Paper%20Scissors%20Paper.ico" />
+            </div>
+            <div class="send-tray">
+                <input class="button" type="submit" value="Send Answer">
+                <button id="close">Close selected connections</button>
+            </div>
         </form>
-        <button id="close">Close selected connections</button>
+
+
     </div>
 
     <div id="wrap">
