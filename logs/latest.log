@@ -1,0 +1,22 @@
+[20:02:01] [Server thread/INFO]: Starting minecraft server version 15w37a
+[20:02:01] [Server thread/INFO]: Loading properties
+[20:02:01] [Server thread/WARN]: server.properties does not exist
+[20:02:01] [Server thread/INFO]: Generating new properties file
+[20:02:01] [Server console handler/ERROR]: Exception handling console input
+java.io.IOException: The handle is invalid
+	at java.io.FileInputStream.readBytes(Native Method) ~[?:1.8.0_40]
+	at java.io.FileInputStream.read(Unknown Source) ~[?:1.8.0_40]
+	at java.io.BufferedInputStream.read1(Unknown Source) ~[?:1.8.0_40]
+	at java.io.BufferedInputStream.read(Unknown Source) ~[?:1.8.0_40]
+	at sun.nio.cs.StreamDecoder.readBytes(Unknown Source) ~[?:1.8.0_40]
+	at sun.nio.cs.StreamDecoder.implRead(Unknown Source) ~[?:1.8.0_40]
+	at sun.nio.cs.StreamDecoder.read(Unknown Source) ~[?:1.8.0_40]
+	at java.io.InputStreamReader.read(Unknown Source) ~[?:1.8.0_40]
+	at java.io.BufferedReader.fill(Unknown Source) ~[?:1.8.0_40]
+	at java.io.BufferedReader.readLine(Unknown Source) ~[?:1.8.0_40]
+	at java.io.BufferedReader.readLine(Unknown Source) ~[?:1.8.0_40]
+	at kv$2.run(SourceFile:93) [minecraft_server.15w37a.jar:?]
+[20:02:01] [Server thread/WARN]: Failed to load eula.txt
+[20:02:01] [Server thread/INFO]: You need to agree to the EULA in order to run the server. Go to eula.txt for more info.
+[20:02:01] [Server thread/INFO]: Stopping server
+[20:02:01] [Server Shutdown Thread/INFO]: Stopping server
